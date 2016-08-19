@@ -1,0 +1,17 @@
+machine:
+  node:
+    version: 6.1.0
+  environment:
+    PROJECT: $CIRCLE_PROJECT_REPONAME
+    BRANCH: $CIRCLE_BRANCH
+    COMMIT: $CIRCLE_SHA1
+
+dependencies:
+  pre:
+    - npm install typescript@beta
+
+deployment:
+  staging:
+    branch: /^(?!nodeploy-).*$/
+    commands:
+      - npm run-script deploy
