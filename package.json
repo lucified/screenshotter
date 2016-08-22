@@ -35,7 +35,8 @@
     "dev": "npm run transpile && node-dev --debug=5858 dist/src/index.js",
     "start": "node dist/src/index.js",
     "transpile": "tsc",
-    "lint": "tslint 'src/**/*.ts'"
+    "lint": "tslint 'src/**/*.ts'",
+    "prepublish": "npm run-script transpile"
   },
   "contributors": [
     "Juho Ojala <juho@lucify.com>",
