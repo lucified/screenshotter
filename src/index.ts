@@ -11,6 +11,6 @@ process.on('SIGINT', function() {
 });
 
 server.start().catch((err) => {
+  console.log(err);
   server.logger.error('Error starting server');
-  throw err;
 });
