@@ -43,7 +43,7 @@ echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localho
 
 ### Save the screenshot in a file
 
-The following shell script requests the screenshotter running at `localhost:8080` to take a screenshot of `lucify.com` and store it in its local filesystem in `/tmp/screenshot.jpg`. On success, the screenshotter will response with status code `200`.
+The following shell script requests the screenshotter running at `localhost:8080` to take a screenshot of `lucify.com` and store it in its local filesystem in `/tmp/screenshot.jpg`. On success, the screenshotter will respond with status code `200`.
 
 ```shell
 read -r -d '' BODY <<EOF
