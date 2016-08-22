@@ -10,8 +10,3 @@ dependencies:
   pre:
     - npm install typescript@beta
 
-deployment:
-  staging:
-    branch: /^(?!nodeploy-).*$/
-    commands:
-      - npm run-script deploy
