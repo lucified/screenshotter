@@ -4,15 +4,26 @@
 Sets up a node server that takes screenshots
 with [node-webshot](https://github.com/brenden/node-webshot).
 
-# Running
+## Install
+
+```shell
+npm install
+```
+
+## Running
 
 ```shell
 npm start # listens on 8080 by default
 ```
 
-# Using
+## Usage
 
-Get the image in the response:
+You can either get the image via an HTTP response, or instruct the `screenshotter` to save the screenshot in a path within its local filesystem.
+
+### Get the screenshot in the HTTP response
+
+The following shell script request a screenshot for `lucify.com`, receives it the body of a HTTP response, and pipes the result into `img.jpg`.
+
 ```shell
 read -r -d '' BODY <<EOF
 {
@@ -30,12 +41,15 @@ EOF
 echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/ > img.jpg
 ```
 
-Save to a file and just return 200 on success:
+### Save the screenshot in a file
+
+The following shell script requests the screenshotter running at `localhost:8080` to take a screenshot of `lucify.com` and store it in its local filesystem in `/tmp/screenshot.jpg`. On success, the screenshotter will response with status code `200`.
+
 ```shell
 read -r -d '' BODY <<EOF
 {
   "url": "lucify.com",
-  "fileName": "~/screenshot.jpg",
+  "fileName": "/tmp/screenshot.jpg",
   "options": {
     "streamType": "jpg",
     "quality": 90,
@@ -49,7 +63,18 @@ EOF
 echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/
 ```
 
-# Remarks
+## Docker
 
-There's an issue with webshot on newer node versions, so we install it straight from
-a [PR](https://github.com/brenden/node-webshot/pull/150).
+Build Docker image with
+```
+docker build -t screenshotter . 
+```
+
+You can then run it with
+```
+docker run --rm -ti -e 'DEBUG=1' -p 8080:8080 screenshotter
+```
+
+## Remarks
+
+There's an issue with `webshot` on newer node versions, so we install it straight from a [Pull Request](https://github.com/brenden/node-webshot/pull/150).
