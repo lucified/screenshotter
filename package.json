@@ -13,7 +13,7 @@
     "inert": "^4.0.1",
     "joi": "^9.0.4",
     "temp": "^0.8.3",
-    "webshot": "^0.18.0",
+    "webshot": "brenden/node-webshot#pull/150/head",
     "winston": "^2.2.0"
   },
   "devDependencies": {

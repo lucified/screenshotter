@@ -48,3 +48,8 @@ read -r -d '' BODY <<EOF
 EOF
 echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/
 ```
+
+# Remarks
+
+There's an issue with webshot on newer node versions, so we install it straight from
+a [PR](https://github.com/brenden/node-webshot/pull/150).
