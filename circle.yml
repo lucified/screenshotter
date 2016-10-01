@@ -1,12 +1,20 @@
+
 machine:
   node:
-    version: 6.1.0
-  environment:
-    PROJECT: $CIRCLE_PROJECT_REPONAME
-    BRANCH: $CIRCLE_BRANCH
-    COMMIT: $CIRCLE_SHA1
-
-dependencies:
+    version: 6.7
   pre:
-    - npm install typescript@beta
+    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
+  services:
+    - docker
+
+test:
+  override:
+    - npm run test
+    - npm run lint
+
+deployment:
+  staging:
+    branch: master
+    commands:
+      - npm run deploy
 

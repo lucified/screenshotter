@@ -1,17 +1,15 @@
-FROM node:6
+FROM node:6.7
 
 WORKDIR /code
-ENV NODE_ENV production
 COPY package.json /code/package.json
-RUN npm install
+RUN npm install && npm ls
 
-COPY ./dist/src /code/dist/src
-COPY ./docker-entrypoint.sh /code/docker-entrypoint.sh
+ENV NODE_ENV production
 
-#RUN apt-get update && apt-get install -y --no-install-recommends \
-#		resolvconf \
-#    && rm -rf /var/lib/apt/lists/*
-#RUN echo "foobar" >> /etc/resolv.conf
-#RUN cd /etc/ && mv resolv.conf resolv.conf.docker && ln -s ./resolv.conf.docker resolv.conf
+COPY . /code
+RUN npm run transpile
+RUN npm prune
+
+
 ENTRYPOINT ["/code/docker-entrypoint.sh"]
 CMD ["npm", "start"]
