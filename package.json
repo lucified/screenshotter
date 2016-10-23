@@ -42,7 +42,7 @@
     "transpile": "tsc",
     "lint": "tslint 'src/**/*.ts'",
     "prepublish": "npm run transpile",
-    "deploy": "lucify-notifier ecs-deployer"
+    "deploy": "lucify-notifier ecs-updater"
   },
   "contributors": [
     "Juho Ojala <juho@lucify.com>",
