@@ -99,8 +99,6 @@ export class Server {
     }
   }
 
-
-
   private async handler(url: string, options: Options, reply: Hapi.IReply, fileName: string) {
 
     this.logger.info(`Taking a screenshot of ${url}`);
@@ -109,7 +107,7 @@ export class Server {
       format: path.extname(fileName) || options.streamType || 'png',
       filename: path.basename(fileName).replace(/\.[^.]+$/, ''),
     };
-    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ]
+    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ];
     try {
       const pageRes = new Pageres(_options)
           .src(url, size, {crop: true})
@@ -129,7 +127,7 @@ export class Server {
       delay: options.renderDelay || 0,
       format: options.streamType || 'png',
     };
-    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ]
+    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ];
     try {
       const pageRes = new Pageres(_options).src(url, size, {crop: true});
       const streams = await pageRes.run();
