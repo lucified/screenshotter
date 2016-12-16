@@ -1,22 +1,23 @@
 import { expect } from 'chai';
-const Pageres = require('pageres');
+import * as fs from 'fs';
+import * as path from 'path';
 
-describe('can take a screenshot', () => {
+import { grab } from '../src/server';
 
-  it('won\'t crash when running Pageres', async () => {
-    const filename = 'test';
-    const pageRes = new Pageres({filename})
-        .src('https://google.com', ['1200x750'], {crop: true})
-        .dest(__dirname + '/../');
+describe('screenshotter', () => {
 
-    try {
-      const stream = await pageRes.run();
-      expect(stream).to.exist;
-      console.log(stream);
-    } catch (err) {
-      expect.fail(err);
-    }
-
+  it('can save a screenshot', async () => {
+    const fileName = path.join(__dirname, '/../', 'test.png');
+    const url = 'https://google.com';
+    const streams = await grab(url, {windowSize: {width: 1200, height: 750}}, fileName);
+    expect(streams[0]).to.exist;
+    expect(fs.existsSync(fileName));
+    fs.unlinkSync(fileName);
   });
 
+  it('can stream a screenshot', async () => {
+    const url = 'https://google.com';
+    const streams = await grab(url, {windowSize: {width: 1200, height: 750}});
+    expect(streams[0]).to.exist;
+  });
 });

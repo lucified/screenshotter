@@ -3,6 +3,7 @@ import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
 import * as path from 'path';
+import { Readable } from 'stream';
 
 import { defaultGoodOptions } from './goodOptions';
 import { Logger } from './logger';
@@ -10,13 +11,51 @@ import { Logger } from './logger';
 const good = require('good');
 const Pageres = require('pageres');
 
-interface Options {
-  renderDelay?: number;
+interface WebshotOptions {
+  renderDelay?: number; // in milliseconds
   streamType?: string;
   windowSize?: {
     width: number;
     height: number;
   };
+}
+
+interface PageresOptions {
+  delay: number; // defaults to 0, in seconds
+  format: string; // defaults to png
+  filename?: string;
+}
+
+function webshotToPageres(
+  webshotOptions: WebshotOptions,
+  fileName?: string,
+): { options: PageresOptions, size: string } {
+  let options = {
+    delay: webshotOptions.renderDelay ? Math.round(webshotOptions.renderDelay / 1000) : 0,
+    format: webshotOptions.streamType || 'png',
+  };
+  let size = '1024x768';
+  if (webshotOptions.windowSize) {
+    size = `${webshotOptions.windowSize.width}x${webshotOptions.windowSize.height}`;
+  }
+  if (fileName) {
+    options = {
+      ...options,
+      format: path.extname(fileName).replace(/^\./, '') || webshotOptions.streamType || 'png',
+      filename: path.basename(fileName).replace(/\.[^.]+$/, ''),
+    };
+  }
+  return { options, size };
+}
+
+export function grab(url: string, webshotOptions: WebshotOptions, fileName?: string): Promise<Readable[]> {
+    const {options, size} = webshotToPageres(webshotOptions, fileName);
+    const pageRes = new Pageres(options)
+        .src(url, [size], { crop: true });
+    if (fileName) {
+      pageRes.dest(path.dirname(fileName));
+    }
+    return pageRes.run();
 }
 
 export class Server {
@@ -49,20 +88,20 @@ export class Server {
     server.route([{
       method: 'POST',
       path: '/',
-      handler: this.postHandler.bind(this),
+      handler: this.handler.bind(this, true),
       config: {
         validate: {
           payload: {
             url: Joi.string().min(3).required(),
             fileName: Joi.string().optional(),
-            options: Joi.object().default({streamType: 'png'}),
+            options: Joi.object().default({ streamType: 'png' }),
           },
         },
       },
     }, {
       method: 'GET',
       path: '/',
-      handler: this.getHandler.bind(this),
+      handler: this.handler.bind(this, false),
       config: {
         validate: {
           query: {
@@ -75,44 +114,23 @@ export class Server {
     }]);
   }
 
-  private postHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const body = request.payload;
+  private handler(isPost: boolean, request: Hapi.Request, reply: Hapi.IReply) {
+    const body = isPost ? request.payload : request.query;
     const url = body.url;
     const fileName = body.fileName;
     const options = body.options;
     if (fileName) {
-      return this.handler(url, options, reply, fileName);
+      return this.saveHandler(url, options, reply, fileName);
     } else {
       return this.streamHandler(url, options, reply);
     }
   }
 
-  private getHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const body = request.query;
-    const url = body.url;
-    const fileName = body.fileName;
-    const options = body.options;
-    if (fileName) {
-      return this.handler(url, options, reply, fileName);
-    } else {
-      return this.streamHandler(url, options, reply);
-    }
-  }
-
-  private async handler(url: string, options: Options, reply: Hapi.IReply, fileName: string) {
+  private async saveHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply, fileName: string) {
 
     this.logger.info(`Taking a screenshot of ${url}`);
-    const _options = {
-      delay: options.renderDelay || 0,
-      format: path.extname(fileName) || options.streamType || 'png',
-      filename: path.basename(fileName).replace(/\.[^.]+$/, ''),
-    };
-    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ];
     try {
-      const pageRes = new Pageres(_options)
-          .src(url, size, {crop: true})
-          .dest(path.dirname(fileName));
-      await pageRes.run();
+      await grab(url, webshotOptions, fileName);
       reply(200);
     } catch (err) {
       reply(Boom.wrap(err));
@@ -120,17 +138,11 @@ export class Server {
     }
   }
 
-  private async streamHandler(url: string, options: Options, reply: Hapi.IReply) {
+  private async streamHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply) {
 
     this.logger.info(`Taking a screenshot of ${url}`);
-    const _options = {
-      delay: options.renderDelay || 0,
-      format: options.streamType || 'png',
-    };
-    const size = [ options.windowSize ? `${options.windowSize.width}x${options.windowSize.height}` : '1024x768' ];
     try {
-      const pageRes = new Pageres(_options).src(url, size, {crop: true});
-      const streams = await pageRes.run();
+      const streams = await grab(url, webshotOptions);
       reply(streams[0]);
     } catch (err) {
       reply(Boom.wrap(err));
