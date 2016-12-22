@@ -89,4 +89,4 @@ from a [Pull Request](https://github.com/brenden/node-webshot/pull/150).
 
 ## Lucify-specific documentation
 
-[lucify-docs.md](Documentation) for Lucify's internal use.
+[Documentation](lucify-docs.md) for Lucify's internal use.
