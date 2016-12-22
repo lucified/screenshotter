@@ -8,7 +8,7 @@
 Local deployments require that:
 - Valid AWS credentials are in place.
 - [ecs-updater](https://github.com/lucified/ecs-updater) is installed globally
-- [lucify-notified](https://github.com/lucified/lucify-notifier) is installed globally
+- [lucify-notifier](https://github.com/lucified/lucify-notifier) is installed globally
 
 Install ecs-updater and lucify-notifier globally with
 ```bash
