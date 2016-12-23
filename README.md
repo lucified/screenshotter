@@ -85,7 +85,3 @@ docker run --rm -ti -e 'DEBUG=1' -p 8080:8080 screenshotter
 
 There's an issue with `webshot` on newer node versions, so we install it straight
 from a [Pull Request](https://github.com/brenden/node-webshot/pull/150).
-
-## Lucify-specific documentation
-
-[Documentation](lucify-docs.md) for Lucify's internal use.
