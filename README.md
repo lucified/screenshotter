@@ -1,7 +1,7 @@
 
 # Screenshotter
 
-Node server that takes screenshots
+A Node server that takes screenshots of websites
 with [node-webshot](https://github.com/brenden/node-webshot).
 
 ## Install
@@ -24,7 +24,7 @@ to save the screenshot in a path within its local filesystem.
 ### Get the screenshot in the HTTP response
 
 The following shell script uses `curl` to request a screenshot for `lucify.com`,
-receives it the body of a HTTP response, and pipes the result into `img.jpg`.
+receives it in the body of a HTTP response, and pipes the result into `img.jpg`.
 
 ```shell
 read -r -d '' BODY <<EOF
@@ -69,8 +69,7 @@ echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localho
 
 ## Docker
 
-Screenshotter can be run in Docker. Using Docker commands require
-that you have Docker installed.
+Screenshotter can be run in Docker. Docker needs to be installed in order to run these commands.
 
 Build Docker image with
 ```shell
