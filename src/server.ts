@@ -128,7 +128,7 @@ export class Server {
 
   private async saveHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply, fileName: string) {
 
-    this.logger.info(`Taking a screenshot of ${url}`);
+    this.logger.info(`Saving a screenshot of '${url}' to '${fileName}'`);
     try {
       await grab(url, webshotOptions, fileName);
       reply(200);
