@@ -29,7 +29,7 @@ export default async function route53Update(
   // See if we are running on AWS
   let ip: string = '<undefined>';
   try {
-    const response = await (<any> fetch)(ec2IpUrl, {timeout: 500});
+    const response = await (fetch as any)(ec2IpUrl, {timeout: 500});
     ip = await response.text();
   } catch (err) {
     logger.info('[route53Update] Not running on EC2, skipping update');
