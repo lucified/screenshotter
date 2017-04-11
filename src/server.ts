@@ -49,31 +49,27 @@ function webshotToPageres(
 }
 
 export function grab(url: string, webshotOptions: WebshotOptions, fileName?: string): Promise<Readable[]> {
-    const {options, size} = webshotToPageres(webshotOptions, fileName);
-    const pageRes = new Pageres(options)
-        .src(url, [size], { crop: true });
-    if (fileName) {
-      pageRes.dest(path.dirname(fileName));
-    }
-    return pageRes.run();
+  const { options, size } = webshotToPageres(webshotOptions, fileName);
+  const pageRes = new Pageres(options)
+    .src(url, [size], { crop: true });
+  if (fileName) {
+    pageRes.dest(path.dirname(fileName));
+  }
+  return pageRes.run();
 }
 
 export class Server {
 
-  public readonly logger: Logger;
-
   private server: Hapi.Server;
-  private port: number;
-  private host: string;
   private goodOptions: any;
 
-  constructor(host: string, port: number, logger: Logger, goodOptions?: any) {
-    this.host = host;
-    this.port = port;
-    this.logger = logger;
-
-    const options = {};
-    const server = new Hapi.Server(options);
+  constructor(
+    private readonly host: string,
+    private readonly port: number,
+    public readonly logger: Logger,
+    goodOptions?: any,
+  ) {
+    const server = new Hapi.Server();
     server.connection({
       host: this.host,
       port: this.port,
@@ -85,45 +81,44 @@ export class Server {
   }
 
   private setRoutes(server: Hapi.Server) {
+    const validations = {
+      url: Joi.string().min(3).required(),
+      fileName: Joi.string().optional(),
+      options: Joi.object().default({ streamType: 'png' }),
+    };
     server.route([{
       method: 'POST',
       path: '/',
-      handler: this.handler.bind(this, true),
+      handler: this.handlerFactory(true),
       config: {
         validate: {
-          payload: {
-            url: Joi.string().min(3).required(),
-            fileName: Joi.string().optional(),
-            options: Joi.object().default({ streamType: 'png' }),
-          },
+          payload: validations,
         },
       },
     }, {
       method: 'GET',
       path: '/',
-      handler: this.handler.bind(this, false),
+      handler: this.handlerFactory(false),
       config: {
         validate: {
-          query: {
-            url: Joi.string().min(3).required(),
-            fileName: Joi.string().optional(),
-            options: Joi.object().default({}),
-          },
+          query: validations,
         },
       },
     }]);
   }
 
-  private handler(isPost: boolean, request: Hapi.Request, reply: Hapi.IReply) {
-    const body = isPost ? request.payload : request.query;
-    const url = body.url;
-    const fileName = body.fileName;
-    const options = body.options;
-    if (fileName) {
-      return this.saveHandler(url, options, reply, fileName);
-    } else {
-      return this.streamHandler(url, options, reply);
-    }
+  private handlerFactory(isPost: boolean) {
+    return (request: Hapi.Request, reply: Hapi.IReply) => {
+      const body = isPost ? request.payload : request.query;
+      const url = body.url;
+      const fileName = body.fileName;
+      const options = body.options;
+      if (fileName) {
+        return this.saveHandler(url, options, reply, fileName);
+      } else {
+        return this.streamHandler(url, options, reply);
+      }
+    };
   }
 
   private async saveHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply, fileName: string) {
@@ -157,7 +152,7 @@ export class Server {
 
     this.logger.info(`Screenshotter running at: ${server.info.uri}`);
     return server;
-  };
+  }
 
   private async loadBasePlugins(server: Hapi.Server) {
 
@@ -165,6 +160,6 @@ export class Server {
       options: this.goodOptions,
       register: good,
     }]);
-  };
+  }
 
 }
