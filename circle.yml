@@ -1,14 +1,14 @@
 
 machine:
   node:
-    version: 7.4
+    version: 7.8
   services:
     - docker
 
 test:
   override:
-    - npm run test
     - npm run lint
+    - npm run test
 
 deployment:
   staging:
