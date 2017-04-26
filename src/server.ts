@@ -1,62 +1,43 @@
 
 import * as Boom from 'boom';
+import { existsSync } from 'fs';
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
 import * as path from 'path';
 import { Readable } from 'stream';
-
 import { defaultGoodOptions } from './goodOptions';
 import { Logger } from './logger';
 
 const good = require('good');
 const Pageres = require('pageres');
 
-interface WebshotOptions {
-  renderDelay?: number; // in milliseconds
-  streamType?: string;
-  windowSize?: {
-    width: number;
-    height: number;
-  };
+export interface PageresOptions {
+  delay?: number;
+  timeout?: number;
+  crop?: boolean;
+  css?: string;
+  script?: string;
+  cookies?: string[];
+  filename?: string; // https://github.com/sindresorhus/pageres#filename
+  incrementalName?: boolean;
+  selector?: string;
+  hide?: string[];
+  username?: string;
+  password?: string;
+  scale?: number; // 1
+  format?: 'png' | 'jpg'; // png
+  userAgent?: string;
+  headers?: object;
 }
 
-interface PageresOptions {
-  delay: number; // defaults to 0, in seconds
-  format: string; // defaults to png
-  filename?: string;
-}
-
-function webshotToPageres(
-  webshotOptions: WebshotOptions,
-  fileName?: string,
-): { options: PageresOptions, size: string } {
-  let options = {
-    delay: webshotOptions.renderDelay ? Math.round(webshotOptions.renderDelay / 1000) : 0,
-    format: webshotOptions.streamType || 'png',
-  };
-  let size = '1024x768';
-  if (webshotOptions.windowSize) {
-    size = `${webshotOptions.windowSize.width}x${webshotOptions.windowSize.height}`;
-  }
-  if (fileName) {
-    options = {
-      ...options,
-      format: path.extname(fileName).replace(/^\./, '') || webshotOptions.streamType || 'png',
-      filename: path.basename(fileName).replace(/\.[^.]+$/, ''),
-    };
-  }
-  return { options, size };
-}
-
-export function grab(url: string, webshotOptions: WebshotOptions, fileName?: string): Promise<Readable[]> {
-  const { options, size } = webshotToPageres(webshotOptions, fileName);
-  const pageRes = new Pageres(options)
-    .src(url, [size], { crop: true });
-  if (fileName) {
-    pageRes.dest(path.dirname(fileName));
-  }
-  return pageRes.run();
-}
+export const defaultPageresOptions: PageresOptions = {
+  delay: 0,
+  timeout: 30,
+  scale: 1,
+  format: 'png',
+  incrementalName: false,
+  crop: true,
+};
 
 export class Server {
 
@@ -83,8 +64,10 @@ export class Server {
   private setRoutes(server: Hapi.Server) {
     const validations = {
       url: Joi.string().min(3).required(),
-      fileName: Joi.string().optional(),
-      options: Joi.object().default({ streamType: 'png' }),
+      sizes: Joi.array().default(['1024x768']),
+      dest: Joi.string().min(3),
+      onlySuccesses: Joi.number().default(0),
+      options: Joi.object().default(defaultPageresOptions),
     };
     server.route([{
       method: 'POST',
@@ -107,50 +90,84 @@ export class Server {
     }]);
   }
 
+  private logStart(num: number, url: string) {
+    const numText = num > 1 ? num + ' screenshots' : 'a screenshot';
+    this.logger.info(`Taking ${numText} of '${url}'`);
+  }
+  private logEnd(num: number, start: number) {
+    const numText = num > 1 ? num + ' screenshots' : 'a screenshot';
+    const end = Date.now();
+    const duration = Math.round((end - start) / 100) / 10;
+    this.logger.info(`Took ${numText} in ${duration}s'`);
+  }
+
   private handlerFactory(isPost: boolean) {
-    return (request: Hapi.Request, reply: Hapi.IReply) => {
-      const body = isPost ? request.payload : request.query;
-      const url = body.url;
-      const fileName = body.fileName;
-      const options = body.options;
-      if (fileName) {
-        return this.saveHandler(url, options, reply, fileName);
-      } else {
-        return this.streamHandler(url, options, reply);
+    return async (request: Hapi.Request, reply: Hapi.IReply) => {
+      try {
+        const body = isPost ? request.payload : request.query;
+        const { url, sizes, dest, options, onlySuccesses } = body;
+        const _onlySuccesses = Number(onlySuccesses);
+        const _options = options as PageresOptions;
+        if (!dest && sizes.length > 1) {
+          throw new Error('Only a single screenshot can be taken when streaming');
+        }
+        this.logStart(sizes.length, url);
+        const start = Date.now();
+        const warnings: string[] = [];
+        const pageres = this.getPageres(url, sizes, dest, options);
+        pageres.on('warning', (msg: string) => {
+          this.logger.warn(msg);
+          warnings.push(msg);
+        });
+        // if 'dest' is not defined, this returns almost immediately
+        const streams: Readable[] = await pageres.run();
+
+        if (dest) {
+          // Collect the filenames
+          this.logEnd(sizes.length, start);
+          const filenames = this.assertFiles(streams, dest);
+          const _reply = reply(filenames);
+          if (_onlySuccesses && warnings.length > 0) {
+            return _reply.code(400);
+          }
+          return reply;
+        } else {
+          streams[0].on('end', () => this.logEnd(sizes.length, start));
+          return reply(streams[0])
+            .type(_options && _options.format === 'jpg' ? 'image/jpeg' : 'image/png');
+        }
+      } catch (error) {
+        this.logger.warn(error.message);
+        return reply(Boom.badRequest(error.message));
       }
     };
   }
 
-  private async saveHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply, fileName: string) {
-
-    this.logger.info(`Saving a screenshot of '${url}' to '${fileName}'`);
-    try {
-      await grab(url, webshotOptions, fileName);
-      reply(200);
-    } catch (err) {
-      reply(Boom.wrap(err));
-      return;
+  private assertFiles(streams: Readable[], dest: string) {
+    const filenames: string[] = [];
+    for (const stream of streams) {
+      const filename = (stream as any).filename;
+      const fullPath = path.join(dest, filename);
+      if (!existsSync(fullPath)) {
+        throw new Error(`Couldn't write to ${fullPath}`);
+      }
+      filenames.push(fullPath);
+      this.logger.info('Wrote screenshot to %s', fullPath);
     }
+    return filenames;
   }
 
-  private async streamHandler(url: string, webshotOptions: WebshotOptions, reply: Hapi.IReply) {
-
-    this.logger.info(`Taking a screenshot of ${url}`);
-    try {
-      const streams = await grab(url, webshotOptions);
-      reply(streams[0]);
-    } catch (err) {
-      reply(Boom.wrap(err));
+  public getPageres(url: string, sizes: string[], dest?: string, options?: PageresOptions) {
+    const pageres = new Pageres(defaultPageresOptions).src(url, sizes, options);
+    if (dest) {
+      pageres.dest(dest);
     }
+    return pageres;
   }
 
-  public async start(): Promise<Hapi.Server> {
-
+  public async initialize(): Promise<Hapi.Server> {
     const server = this.server;
     await this.loadBasePlugins(server);
-    await server.start();
-
-    this.logger.info(`Screenshotter running at: ${server.info.uri}`);
     return server;
   }
 
