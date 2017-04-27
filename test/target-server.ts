@@ -2,7 +2,6 @@
 import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 
-
 export default class TargetServer {
 
   private server: Hapi.Server;
@@ -35,7 +34,6 @@ export default class TargetServer {
       handler: this.failJsHandler,
     }]);
   }
-
 
   private async succeedHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     return reply(`
