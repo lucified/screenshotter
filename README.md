@@ -13,7 +13,7 @@ npm install
 ## Running
 
 ```shell
-npm start # listens on 8080 by default
+npm start # listens on port 8090 by default
 ```
 
 ## Usage
