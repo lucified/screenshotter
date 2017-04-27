@@ -2,7 +2,7 @@
 # Screenshotter
 
 A Node server that takes screenshots of websites
-with [node-webshot](https://github.com/brenden/node-webshot).
+with [pageres](https://github.com/sindresorhus/pageres).
 
 ## Install
 
@@ -18,73 +18,96 @@ npm start # listens on 8080 by default
 
 ## Usage
 
-You can either get the image via an HTTP response, or instruct `screenshotter`
-to save the screenshot in a path within its local filesystem.
+### `POST /save`
 
-### Get the screenshot in the HTTP response
+Saves screenshots of `url` with dimensions `sizes` to the directory `dest`
+in the server's local filesystem.
 
-The following shell script uses `curl` to request a screenshot for `lucify.com`,
-receives it in the body of a HTTP response, and pipes the result into `img.jpg`.
+```typescript
+interface Payload {
+  url: string;
+  dest: string;
+  sizes?: string[]; // defaults to ["1024x768"]
+  failOnWarnings?: boolean; // defaults to false
+  options?: PageresOptions;
+}
+```
+
+### `POST /stream`
+
+Streams a screenshot of `url` with dimensions `size`.
+
+```typescript
+interface Payload {
+  url: string;
+  size?: string; // defaults to "1024x768"
+  options?: PageresOptions;
+}
+```
+
+## Pageres options and defaults
+
+```typescript
+interface PageresOptions {
+  delay?: number;
+  timeout?: number;
+  crop?: boolean;
+  css?: string;
+  script?: string;
+  cookies?: string[];
+  filename?: string; // https://github.com/sindresorhus/pageres#filename
+  incrementalName?: boolean;
+  selector?: string;
+  hide?: string[];
+  username?: string;
+  password?: string;
+  scale?: number; // 1
+  format?: 'png' | 'jpg'; // png
+  userAgent?: string;
+  headers?: object;
+}
+
+const defaultPageresOptions: PageresOptions = {
+  delay: 0,
+  timeout: 30,
+  scale: 1,
+  format: 'png',
+  incrementalName: false,
+  crop: true,
+};
+```
+
+## Examples
+
+### Save to the current directory
 
 ```shell
 read -r -d '' BODY <<EOF
 {
-  "url": "lucify.com",
+  "url": "https://lucify.com",
+  "dest": "$PWD",
+  "sizes": ["1024x768", "1920x1200"],
   "options": {
-    "streamType": "jpg",
-    "quality": 90,
-    "windowSize": {
-      "width": 2000,
-      "height": 1500
-    }
+    "scale": 2
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/ > img.jpg
+echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/save
 ```
 
-### Save the screenshot in a file
-
-The following shell script uses `curl` to request the screenshotter running at `localhost:8080`
-to take a screenshot of `lucify.com` and store it in its local filesystem in `/tmp/screenshot.jpg`.
-On success, the screenshotter responds with status code `200`.
+### Stream to a file
 
 ```shell
 read -r -d '' BODY <<EOF
 {
-  "url": "lucify.com",
-  "fileName": "/tmp/screenshot.jpg",
+  "url": "https://lucify.com",
   "options": {
-    "streamType": "jpg",
-    "quality": 90,
-    "windowSize": {
-      "width": 2000,
-      "height": 1500
-    }
+    "scale": 2
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/
+echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/stream > img.jpg
 ```
-
-## Docker
-
-Screenshotter can be run in Docker. Docker needs to be installed in order to run these commands.
-
-Build Docker image with
-```shell
-docker build -t screenshotter .
-```
-
-You can then run it with
-```shell
-docker run --rm -ti -e 'DEBUG=1' -p 8080:8080 screenshotter
-```
-
-## Remarks
-
-There's an issue with `webshot` on newer node versions, so we install it straight
-from a [Pull Request](https://github.com/brenden/node-webshot/pull/150).
 
 ## License
 
