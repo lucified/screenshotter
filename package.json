@@ -44,7 +44,8 @@
     "watch": "tsc -w",
     "lint": "tslint 'src/**/*.ts'",
     "prepublish": "npm run transpile",
-    "deploy": "lucify-notifier ecs-updater"
+    "deploy": "lucify-notifier ecs-updater",
+    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'"
   },
   "contributors": [
     "Juho Ojala <juho@lucify.com>",

@@ -11,8 +11,11 @@ test:
     - npm run test
 
 deployment:
-  staging:
-    branch: /^(?!nodeploy-).*$/
+  auto:
+    branch: master
     commands:
       - npm run deploy
-
+  chatops:
+    branch: /^(?!nodeploy-).*$/
+    commands:
+      - npm run deploy-chatops
