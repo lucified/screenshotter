@@ -92,7 +92,7 @@ read -r -d '' BODY <<EOF
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/save
+echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8090/save
 ```
 
 ### Stream to a file
@@ -106,7 +106,7 @@ read -r -d '' BODY <<EOF
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8080/stream > img.jpg
+echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8090/stream > img.jpg
 ```
 
 ## License
