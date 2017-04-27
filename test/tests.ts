@@ -134,7 +134,7 @@ describe('screenshotter', () => {
     expect(response.statusCode).to.eq(400);
   });
 
-  it('returns 400 when target is not responding', async () => {
+  it('returns 400 when the target is not responding', async () => {
 
     // Act
     const response = await makeFaultyRequest();
@@ -143,8 +143,7 @@ describe('screenshotter', () => {
     expect(response.statusCode).to.eq(400);
   });
 
-
-  it('returns 502 when target returns 404 and failOnWarnings = true', async () => {
+  it('returns 502 when the target returns 404 and failOnWarnings = true', async () => {
     // Arrange
     const targetPath = '/fail/404';
     const sizes = ['1024x768'];
@@ -159,7 +158,7 @@ describe('screenshotter', () => {
     // Assert
     expect(response.statusCode).to.eq(502);
   });
-  it('returns 200 when target returns 404 and failOnWarnings = false', async () => {
+  it('returns 200 when the target returns 404 and failOnWarnings = false', async () => {
     // Arrange
     const targetPath = '/fail/404';
     const sizes = ['1024x768'];
@@ -174,7 +173,7 @@ describe('screenshotter', () => {
     // Assert
     expect(response.statusCode).to.eq(200);
   });
-  it('returns 502 when target has a js error and failOnWarnings = true', async () => {
+  it('returns 200 when the target has a js error and failOnWarnings = true', async () => {
     // Arrange
     const targetPath = '/fail/jserror';
     const sizes = ['1024x768'];
@@ -187,7 +186,7 @@ describe('screenshotter', () => {
     const response = await makeSaveRequest(targetPath, sizes, tmpFolder, options, true);
 
     // Assert
-    expect(response.statusCode).to.eq(502);
+    expect(response.statusCode).to.eq(200);
   });
 
 });

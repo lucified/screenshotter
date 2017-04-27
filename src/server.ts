@@ -123,10 +123,16 @@ export class Server {
       this.logEnd(sizes.length, start);
       const filenames = this.assertFiles(streams, dest);
       if (failOnWarnings && warnings.length > 0) {
-        return reply(Boom.badGateway(warnings.join('\n')));
+        const statusCodeRegExp = new RegExp(`\\(error\\s+downloading\\s+${url}`, 'i');
+        const statusCodeWarnings = warnings.filter(warning => !!warning.match(statusCodeRegExp));
+        if (statusCodeWarnings && statusCodeWarnings.length > 0) {
+          return reply(Boom.badGateway(statusCodeWarnings.join('\n')));
+        }
       }
       return reply(filenames);
     } catch (error) {
+      // Pageres throws for example when it encounters connecitivity problems
+      // or is unable to write to the specified location
       this.logger.error(error.message);
       return reply(Boom.badRequest(error.message));
     }
