@@ -62,29 +62,34 @@ export class Server {
   }
 
   private setRoutes(server: Hapi.Server) {
-    const validations = {
-      url: Joi.string().min(3).required(),
-      sizes: Joi.array().default(['1024x768']),
-      dest: Joi.string().min(3),
-      onlySuccesses: Joi.number().default(0),
-      options: Joi.object().default(defaultPageresOptions),
-    };
     server.route([{
       method: 'POST',
-      path: '/',
-      handler: this.handlerFactory(true),
+      path: '/save',
+      handler: this.saveHandler,
       config: {
+        bind: this,
         validate: {
-          payload: validations,
+          payload: {
+            url: Joi.string().min(3).required(),
+            dest: Joi.string().min(3).required(),
+            sizes: Joi.array().default(['1024x768']),
+            failOnWarnings: Joi.boolean().default(false),
+            options: Joi.object().default(defaultPageresOptions),
+          },
         },
       },
     }, {
-      method: 'GET',
-      path: '/',
-      handler: this.handlerFactory(false),
+      method: 'POST',
+      path: '/stream',
+      handler: this.streamHandler,
       config: {
+        bind: this,
         validate: {
-          query: validations,
+          payload: {
+            url: Joi.string().min(3).required(),
+            size: Joi.string().default('1024x768'),
+            options: Joi.object().default(defaultPageresOptions),
+          },
         },
       },
     }]);
@@ -101,46 +106,51 @@ export class Server {
     this.logger.info(`Took ${numText} in ${duration}s'`);
   }
 
-  private handlerFactory(isPost: boolean) {
-    return async (request: Hapi.Request, reply: Hapi.IReply) => {
-      try {
-        const body = isPost ? request.payload : request.query;
-        const { url, sizes, dest, options, onlySuccesses } = body;
-        const _onlySuccesses = Number(onlySuccesses);
-        const _options = options as PageresOptions;
-        if (!dest && sizes.length > 1) {
-          throw new Error('Only a single screenshot can be taken when streaming');
-        }
-        this.logStart(sizes.length, url);
-        const start = Date.now();
-        const warnings: string[] = [];
-        const pageres = this.getPageres(url, sizes, dest, options);
-        pageres.on('warning', (msg: string) => {
-          this.logger.warn(msg);
-          warnings.push(msg);
-        });
-        // if 'dest' is not defined, this returns almost immediately
-        const streams: Readable[] = await pageres.run();
-
-        if (dest) {
-          // Collect the filenames
-          this.logEnd(sizes.length, start);
-          const filenames = this.assertFiles(streams, dest);
-          const _reply = reply(filenames);
-          if (_onlySuccesses && warnings.length > 0) {
-            return _reply.code(400);
-          }
-          return reply;
-        } else {
-          streams[0].on('end', () => this.logEnd(sizes.length, start));
-          return reply(streams[0])
-            .type(_options && _options.format === 'jpg' ? 'image/jpeg' : 'image/png');
-        }
-      } catch (error) {
-        this.logger.warn(error.message);
-        return reply(Boom.badRequest(error.message));
+  private async saveHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const body = request.payload;
+      const { url, sizes, dest, options, failOnWarnings } = body;
+      this.logStart(sizes.length, url);
+      const start = Date.now();
+      const warnings: string[] = [];
+      const pageres = this.getPageres(url, sizes, dest, options);
+      pageres.on('warning', (msg: string) => {
+        this.logger.warn(msg);
+        warnings.push(msg);
+      });
+      const streams: Readable[] = await pageres.run();
+      // Collect the filenames
+      this.logEnd(sizes.length, start);
+      const filenames = this.assertFiles(streams, dest);
+      if (failOnWarnings && warnings.length > 0) {
+        return reply(Boom.badGateway(warnings.join('\n')));
       }
-    };
+      return reply(filenames);
+    } catch (error) {
+      this.logger.error(error.message);
+      return reply(Boom.badRequest(error.message));
+    }
+  }
+
+  private async streamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const body = request.payload;
+      const { url, size, options } = body;
+      const _options = options as PageresOptions;
+      this.logStart(1, url);
+      const start = Date.now();
+      const pageres = this.getPageres(url, [size], undefined, options);
+      pageres.on('warning', (msg: string) => {
+        this.logger.warn(msg);
+      });
+      const streams: Readable[] = await pageres.run();
+      streams[0].on('end', () => this.logEnd(1, start));
+      return reply(streams[0])
+        .type(_options && _options.format === 'jpg' ? 'image/jpeg' : 'image/png');
+    } catch (error) {
+      this.logger.warn(error.message);
+      return reply(Boom.badRequest(error.message));
+    }
   }
 
   private assertFiles(streams: Readable[], dest: string) {
