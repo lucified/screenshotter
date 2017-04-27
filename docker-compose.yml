@@ -10,8 +10,6 @@ services:
       - PORT=80
       - DEBUG=1
     volumes:
-      - ./dist:/code/dist
-      - ./docker-entrypoint.sh:/code/docker-entrypoint.sh
       - ./test/tmp:/screenshots
 
 

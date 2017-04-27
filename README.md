@@ -79,34 +79,41 @@ const defaultPageresOptions: PageresOptions = {
 
 ## Examples
 
-### Save to the current directory
+Start the screenshotter at `localhost:8090` with
+
+```bash
+docker-compose up
+```
+
+### Save to a directory
 
 ```shell
 read -r -d '' BODY <<EOF
 {
-  "url": "https://lucify.com",
-  "dest": "$PWD",
+  "url": "https://google.com",
+  "dest": "/screenshots",
   "sizes": ["1024x768", "1920x1200"],
   "options": {
     "scale": 2
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8090/save
+echo $BODY | curl -v -H "Content-Type: application/json" -d '@-' localhost:8090/save
 ```
+There should now exist two PNGs at `test/tmp`.
 
 ### Stream to a file
 
 ```shell
 read -r -d '' BODY <<EOF
 {
-  "url": "https://lucify.com",
+  "url": "https://google.com",
   "options": {
     "scale": 2
   }
 }
 EOF
-echo $BODY | curl -v -X POST -H "Content-Type: application/json" -d '@-' localhost:8090/stream > img.jpg
+echo $BODY | curl -v -H "Content-Type: application/json" -d '@-' localhost:8090/stream > screenshot.png
 ```
 
 ## License
