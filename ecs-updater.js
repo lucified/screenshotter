@@ -1,4 +1,3 @@
-
 const env = process.env.LUCIFY_ENV === 'production' ? 'production' : 'staging';
 
 module.exports = {
@@ -9,4 +8,5 @@ module.exports = {
   IMAGE: 'screenshotter',
   BUCKET: 'lucify-configuration',
   KEY: `ecs_services/screenshotter_${env}`,
+  TASKDEFINITION_SOURCE: 'ecs-only',
 };

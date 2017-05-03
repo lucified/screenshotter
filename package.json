@@ -27,7 +27,7 @@
     "@types/rimraf": "0.0.28",
     "@types/winston": "^2.3.1",
     "chai": "^3.5.0",
-    "ecs-updater": "^0.3.0",
+    "ecs-updater": "^0.3.4",
     "lucify-notifier": "^0.1.14",
     "mkdirp": "^0.5.1",
     "mocha": "^3.3.0",
