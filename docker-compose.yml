@@ -1,0 +1,15 @@
+
+version: '2'
+
+services:
+  screenshotter:
+    build: .
+    ports:
+      - 8090:80
+    environment:
+      - PORT=80
+      - DEBUG=1
+    volumes:
+      - ./test/tmp:/screenshots
+
+

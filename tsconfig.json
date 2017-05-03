@@ -4,6 +4,10 @@
     "sourceMap": true,
     "noImplicitAny": true,
     "target": "es6",
+    "lib": [
+      "es5",
+      "es2015"
+    ],
     "module": "commonjs",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
