@@ -62,37 +62,48 @@ export class Server {
   }
 
   private setRoutes(server: Hapi.Server) {
-    server.route([{
-      method: 'POST',
-      path: '/save',
-      handler: this.saveHandler,
-      config: {
-        bind: this,
-        validate: {
-          payload: {
-            url: Joi.string().min(3).required(),
-            dest: Joi.string().min(3).required(),
-            sizes: Joi.array().default(['1024x768']),
-            failOnWarnings: Joi.boolean().default(false),
-            options: Joi.object().default(defaultPageresOptions),
+    server.route([
+      {
+        method: 'POST',
+        path: '/save',
+        handler: this.saveHandler,
+        config: {
+          bind: this,
+          validate: {
+            payload: {
+              url: Joi.string().min(3).required(),
+              dest: Joi.string().min(3).required(),
+              sizes: Joi.array().default(['1024x768']),
+              failOnWarnings: Joi.boolean().default(false),
+              options: Joi.object().default(defaultPageresOptions),
+            },
           },
         },
       },
-    }, {
-      method: 'POST',
-      path: '/stream',
-      handler: this.streamHandler,
-      config: {
-        bind: this,
-        validate: {
-          payload: {
-            url: Joi.string().min(3).required(),
-            size: Joi.string().default('1024x768'),
-            options: Joi.object().default(defaultPageresOptions),
+      {
+        method: 'POST',
+        path: '/stream',
+        handler: this.streamHandler,
+        config: {
+          bind: this,
+          validate: {
+            payload: {
+              url: Joi.string().min(3).required(),
+              size: Joi.string().default('1024x768'),
+              options: Joi.object().default(defaultPageresOptions),
+            },
           },
         },
       },
-    }]);
+      {
+        method: 'GET',
+        path: '/health',
+        handler: this.healthHandler,
+        config: {
+          bind: this,
+        },
+      },
+    ]);
   }
 
   private logStart(num: number, url: string) {
@@ -104,6 +115,10 @@ export class Server {
     const end = Date.now();
     const duration = Math.round((end - start) / 100) / 10;
     this.logger.info(`Took ${numText} in ${duration}s'`);
+  }
+
+  private async healthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+    return reply('screenshotter ok');
   }
 
   private async saveHandler(request: Hapi.Request, reply: Hapi.IReply) {
